@@ -2,33 +2,44 @@ package com.example.demo.controller;
 
 import com.example.demo.model.ShortLink;
 import com.example.demo.service.ShortLinkService;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
+import java.util.Optional;
 
-@RestController
-@RequestMapping("/api")
+@Controller
 public class ShortLinkController {
-    private final ShortLinkService service;
 
-    public ShortLinkController(ShortLinkService service) {
-        this.service = service;
+    @Autowired
+    private ShortLinkService shortLinkService;
+
+    // Homepage - form to submit a URL
+    @GetMapping("/")
+    public String home() {
+        return "index"; // maps to src/main/resources/templates/index.html
     }
 
-    // POST /api/shorten
+    // Handle form submission
     @PostMapping("/shorten")
-    public ResponseEntity<String> shortenUrl(@RequestBody String url) {
-        ShortLink link = service.createShortLink(url);
-        return ResponseEntity.ok("http://localhost:8080/" + link.getShortCode());
+    public String shortenUrl(@RequestParam("url") String url, Model model) {
+        ShortLink shortLink = shortLinkService.createShortLink(url);
+        model.addAttribute("shortLink", shortLink);
+        return "result"; // maps to src/main/resources/templates/result.html
     }
 
-    // GET /{shortCode}
-@GetMapping("/{shortCode}")
-public ResponseEntity<Object> redirect(@PathVariable String shortCode) {
-    return service.getByCode(shortCode)
-            .map(link -> ResponseEntity.status(302).location(URI.create(link.getOriginalUrl())).build())
-            .orElse(ResponseEntity.notFound().build());
-}
+    // Redirect from short code
+    @GetMapping("/{shortCode}")
+    public String redirectToUrl(@PathVariable String shortCode) {
+        Optional<ShortLink> shortLinkOptional = shortLinkService.getByShortCode(shortCode);
 
+        if (shortLinkOptional.isPresent()) {
+            ShortLink shortLink = shortLinkOptional.get();
+            shortLinkService.incrementClickCount(shortLink);
+            return "redirect:" + shortLink.getOriginalUrl();
+        } else {
+            return "error"; // show error page if code not found
+        }
+    }
 }
