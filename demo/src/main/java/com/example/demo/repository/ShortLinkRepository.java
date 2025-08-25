@@ -1,9 +1,18 @@
 package com.example.demo.repository;
 
-import com.example.demo.model.ShortLink;
-import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.example.demo.model.ShortLink;
+
+@Repository
 public interface ShortLinkRepository extends JpaRepository<ShortLink, Long> {
+
+    // Find by short code
     Optional<ShortLink> findByShortCode(String shortCode);
+
+    // Check if a short code already exists
+    boolean existsByShortCode(String shortCode);
 }
