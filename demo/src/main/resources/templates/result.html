@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Shortened URL</title>
+</head>
+<body>
+    <h1>Your Shortened URL</h1>
+    <p>
+        <a th:href="@{'/' + ${shortLink.shortCode}}" 
+           th:text="@{'http://localhost:8080/' + ${shortLink.shortCode}}"></a>
+    </p>
+    <p>Click count: <span th:text="${shortLink.clickCount}"></span></p>
+    <a href="/">Shorten another</a>
+</body>
+</html>
