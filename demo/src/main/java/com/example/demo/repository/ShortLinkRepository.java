@@ -3,16 +3,18 @@ package com.example.demo.repository;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.example.demo.model.ShortLink;
 
-@Repository
 public interface ShortLinkRepository extends JpaRepository<ShortLink, Long> {
 
-    // Find by short code
-    Optional<ShortLink> findByShortCode(String shortCode);
+    // ✅ Find by short code
+    @Query("SELECT s FROM ShortLink s WHERE s.shortCode = :shortCode")
+    Optional<ShortLink> findByShortCode(@Param("shortCode") String shortCode);
 
-    // Check if a short code already exists
-    boolean existsByShortCode(String shortCode);
+    // ✅ Check if short code exists
+    @Query("SELECT COUNT(s) > 0 FROM ShortLink s WHERE s.shortCode = :shortCode")
+    boolean existsByShortCode(@Param("shortCode") String shortCode);
 }

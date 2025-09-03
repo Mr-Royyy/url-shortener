@@ -3,14 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <title>Shortened URL</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script>
+        function copyToClipboard() {
+            const copyText = document.getElementById("shortUrl").textContent;
+            navigator.clipboard.writeText(copyText).then(() => {
+                const msg = document.getElementById("copyMessage");
+                msg.style.display = "block";
+                setTimeout(() => msg.style.display = "none", 2000);
+            });
+        }
+    </script>
 </head>
-<body>
-    <h1>Your Shortened URL</h1>
-    <p>
-        <a th:href="@{'/' + ${shortLink.shortCode}}" 
-           th:text="@{'http://localhost:8080/' + ${shortLink.shortCode}}"></a>
-    </p>
-    <p>Click count: <span th:text="${shortLink.clickCount}"></span></p>
-    <a href="/">Shorten another</a>
+<body class="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
+
+    <div class="card shadow p-4 text-center" style="max-width: 600px;">
+        <h2 class="text-success">✅ URL Shortened Successfully!</h2>
+
+        <p class="mt-3">Here’s your shortened link:</p>
+
+        <!-- ✅ Shortened URL displayed -->
+        <h4 id="shortUrl" th:text="${shortUrl}" class="text-primary"></h4>
+
+        <!-- ✅ Copy button -->
+        <button class="btn btn-outline-secondary mt-2" onclick="copyToClipboard()">Copy Link</button>
+        <p id="copyMessage" class="text-success mt-2" style="display:none;">Copied to clipboard!</p>
+
+        <!-- ✅ Click count -->
+        <p class="mt-3 text-muted">This link has been used <span th:text="${clickCount}"></span> times.</p>
+
+        <a href="/" class="btn btn-primary mt-3">Shorten Another</a>
+    </div>
+
 </body>
 </html>

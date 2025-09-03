@@ -1,45 +1,77 @@
 package com.example.demo.controller;
 
-import com.example.demo.model.ShortLink;
-import com.example.demo.service.ShortLinkService;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Optional;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.Optional;
+import com.example.demo.model.ShortLink;
+import com.example.demo.service.ShortLinkService;
 
 @Controller
 public class ShortLinkController {
 
-    @Autowired
-    private ShortLinkService shortLinkService;
+    private final ShortLinkService service;
 
-    // Homepage - form to submit a URL
+    public ShortLinkController(ShortLinkService service) {
+        this.service = service;
+    }
+
+    // ✅ Home page
     @GetMapping("/")
-    public String home() {
-        return "index"; // maps to src/main/resources/templates/index.html
+    public String index() {
+        return "index";
     }
 
-    // Handle form submission
+    // ✅ Handle shorten request
     @PostMapping("/shorten")
-    public String shortenUrl(@RequestParam("url") String url, Model model) {
-        ShortLink shortLink = shortLinkService.createShortLink(url);
-        model.addAttribute("shortLink", shortLink);
-        return "result"; // maps to src/main/resources/templates/result.html
-    }
+    public String shortenUrl(@RequestParam("url") String originalUrl, Model model) {
+        Optional<ShortLink> result = service.createShortLink(originalUrl);
 
-    // Redirect from short code
-    @GetMapping("/{shortCode}")
-    public String redirectToUrl(@PathVariable String shortCode) {
-        Optional<ShortLink> shortLinkOptional = shortLinkService.getByShortCode(shortCode);
-
-        if (shortLinkOptional.isPresent()) {
-            ShortLink shortLink = shortLinkOptional.get();
-            shortLinkService.incrementClickCount(shortLink);
-            return "redirect:" + shortLink.getOriginalUrl();
-        } else {
-            return "error"; // show error page if code not found
+        if (result.isEmpty()) {
+            model.addAttribute("errorMessage", "Invalid URL. Please enter a valid link (e.g., https://example.com)");
+            return "error"; // will show error.html
         }
+
+        ShortLink shortLink = result.get();
+        model.addAttribute("shortUrl", "http://localhost:8080/" + shortLink.getShortCode());
+        model.addAttribute("clickCount", shortLink.getClickCount());
+        return "result"; // result.html
     }
+
+    // ✅ Redirect handler
+    @GetMapping("/{shortCode}")
+    public String redirect(@PathVariable String shortCode) {
+        Optional<ShortLink> link = service.getByShortCode(shortCode);
+
+        if (link.isEmpty()) {
+            return "error"; // not found
+        }
+
+        service.incrementClickCount(shortCode);
+        return "redirect:" + link.get().getOriginalUrl(); // 302 redirect
+    }
+
+    // ✅ Analytics page
+@GetMapping("/analytics")
+public String analytics(@RequestParam(value = "code", required = false) String code, Model model) {
+    if (code == null || code.isBlank()) {
+        return "analytics"; // show empty form first
+    }
+
+    return service.getByShortCode(code)
+            .map(link -> {
+                model.addAttribute("shortLink", link);
+                return "analytics";
+            })
+            .orElseGet(() -> {
+                model.addAttribute("errorMessage", "No link found for short code: " + code);
+                return "analytics";
+            });
+}
+
 }
