@@ -23,21 +23,22 @@ public class ShortLink {
     @Column(name = "original_url", columnDefinition = "TEXT", nullable = false)
     private String originalUrl;
 
-    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "click_count", nullable = false)
     private int clickCount = 0;
 
-    // ✅ No expiry yet (matches current DB)
-    // If you later add expiration, add: private LocalDateTime expiryDate;
+    public ShortLink() {}
+
+    public ShortLink(String shortCode, String originalUrl) {
+        this.shortCode = shortCode;
+        this.originalUrl = originalUrl;
+    }
 
     // Getters & setters
     public Long getId() {
         return id;
-    }
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getShortCode() {
@@ -56,9 +57,6 @@ public class ShortLink {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
-    }
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 
     public int getClickCount() {

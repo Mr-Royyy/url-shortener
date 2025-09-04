@@ -15,24 +15,26 @@
         }
     </script>
 </head>
-<body class="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
+<body class="bg-light">
 
-    <div class="card shadow p-4 text-center" style="max-width: 600px;">
-        <h2 class="text-success">✅ URL Shortened Successfully!</h2>
+    <!-- Navbar -->
+    <div th:replace="fragments/navbar :: *"></div>
 
-        <p class="mt-3">Here’s your shortened link:</p>
+    <!-- Main content -->
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100">
+        <div class="card shadow p-4 text-center" style="max-width: 600px;">
+            <h2 class="text-success">✅ URL Shortened!</h2>
+            <p class="mt-3">Here’s your shortened link:</p>
 
-        <!-- ✅ Shortened URL displayed -->
-        <h4 id="shortUrl" th:text="${shortUrl}" class="text-primary"></h4>
+            <h4 id="shortUrl" th:text="${shortUrl}" class="text-primary"></h4>
 
-        <!-- ✅ Copy button -->
-        <button class="btn btn-outline-secondary mt-2" onclick="copyToClipboard()">Copy Link</button>
-        <p id="copyMessage" class="text-success mt-2" style="display:none;">Copied to clipboard!</p>
+            <button class="btn btn-outline-secondary mt-2" onclick="copyToClipboard()">Copy Link</button>
+            <p id="copyMessage" class="text-success mt-2" style="display:none;">Copied to clipboard!</p>
 
-        <!-- ✅ Click count -->
-        <p class="mt-3 text-muted">This link has been used <span th:text="${clickCount}"></span> times.</p>
+            <p class="mt-3 text-muted">This link has been used <span th:text="${clickCount}"></span> times.</p>
 
-        <a href="/" class="btn btn-primary mt-3">Shorten Another</a>
+            <a href="/" class="btn btn-primary mt-3">Shorten Another</a>
+        </div>
     </div>
 
 </body>

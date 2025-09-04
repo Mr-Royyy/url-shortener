@@ -1,12 +1,10 @@
 package com.example.demo.service;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.security.SecureRandom;
 import java.util.Optional;
-import java.util.Random;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.example.demo.model.ShortLink;
 import com.example.demo.repository.ShortLinkRepository;
@@ -14,63 +12,57 @@ import com.example.demo.repository.ShortLinkRepository;
 @Service
 public class ShortLinkService {
 
-    private final ShortLinkRepository repository;
-    private final Random random = new Random();
-    private static final String BASE62 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private final ShortLinkRepository shortLinkRepository;
+    private static final String ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int CODE_LENGTH = 6; // e.g., "abc123"
+    private final SecureRandom random = new SecureRandom();
 
-    public ShortLinkService(ShortLinkRepository repository) {
-        this.repository = repository;
+    public ShortLinkService(ShortLinkRepository shortLinkRepository) {
+        this.shortLinkRepository = shortLinkRepository;
     }
 
-    // ✅ Validate URL before saving
-    private boolean isValidUrl(String url) {
-        try {
-            new URL(url); // will throw exception if invalid
-            return true;
-        } catch (MalformedURLException e) {
-            return false;
-        }
-    }
-
-    // ✅ Create a new short link
-    @Transactional
-    public Optional<ShortLink> createShortLink(String originalUrl) {
-        if (!isValidUrl(originalUrl)) {
-            return Optional.empty(); // invalid URL → return empty
-        }
-
-        String shortCode;
-        do {
-            shortCode = generateShortCode();
-        } while (repository.existsByShortCode(shortCode));
-
-        ShortLink shortLink = new ShortLink();
-        shortLink.setOriginalUrl(originalUrl);
-        shortLink.setShortCode(shortCode);
-
-        return Optional.of(repository.save(shortLink));
-    }
-
-    // ✅ Fetch by short code
-    public Optional<ShortLink> getByShortCode(String shortCode) {
-        return repository.findByShortCode(shortCode);
-    }
-
-    // ✅ Increment click count
-    @Transactional
-    public void incrementClickCount(String shortCode) {
-        repository.findByShortCode(shortCode).ifPresent(link -> {
-            link.setClickCount(link.getClickCount() + 1);
-            repository.save(link);
-        });
-    }
-
-    // ✅ Random Base62 short code generator
+    // ✅ Generate short code
     private String generateShortCode() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 6; i++) { // 6-char short codes
-            sb.append(BASE62.charAt(random.nextInt(BASE62.length())));
+        StringBuilder code;
+        do {
+            code = new StringBuilder();
+            for (int i = 0; i < CODE_LENGTH; i++) {
+                int idx = random.nextInt(ALPHABET.length());
+                code.append(ALPHABET.charAt(idx));
+            }
+        } while (shortLinkRepository.existsByShortCode(code.toString())); // ensure uniqueness
+        return code.toString();
+    }
+
+    // ✅ Shorten a URL
+    public ShortLink createShortLink(String originalUrl) {
+        if (!isValidUrl(originalUrl)) {
+            throw new IllegalArgumentException("Invalid URL: " + originalUrl);
         }
-        return sb.toString();
+
+        String shortCode = generateShortCode();
+        ShortLink shortLink = new ShortLink(shortCode, originalUrl);
+        return shortLinkRepository.save(shortLink);
+    }
+
+    // ✅ Fetch by short code & increment click count
+    public Optional<ShortLink> getAndTrack(String shortCode) {
+        Optional<ShortLink> optional = shortLinkRepository.findByShortCode(shortCode);
+        optional.ifPresent(link -> {
+            link.setClickCount(link.getClickCount() + 1);
+            shortLinkRepository.save(link);
+        });
+        return optional;
+    }
+
+    // ✅ Fetch analytics without increment
+    public Optional<ShortLink> getAnalytics(String shortCode) {
+        return shortLinkRepository.findByShortCode(shortCode);
+    }
+
+    // ✅ Simple URL validation
+    private boolean isValidUrl(String url) {
+        if (!StringUtils.hasText(url)) return false;
+        return url.startsWith("http://") || url.startsWith("https://");
     }
 }

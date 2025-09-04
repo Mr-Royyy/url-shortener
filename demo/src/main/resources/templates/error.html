@@ -5,16 +5,21 @@
     <title>Error</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
-<body class="d-flex flex-column align-items-center justify-content-center vh-100 bg-light">
+<body class="bg-light">
 
-    <div class="card shadow p-4 text-center" style="max-width: 500px;">
-        <h2 class="text-danger">⚠️ Error</h2>
+    <!-- Navbar -->
+    <div th:replace="fragments/navbar :: *"></div>
 
-        <!-- ✅ Show dynamic error message if present -->
-        <p th:text="${errorMessage != null ? errorMessage : 'Something went wrong. Please try again.'}"
-           class="text-muted"></p>
+    <!-- Main content -->
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100">
+        <div class="card shadow p-4 text-center" style="max-width: 500px;">
+            <h2 class="text-danger">⚠️ Error</h2>
 
-        <a href="/" class="btn btn-primary mt-3">Go Back</a>
+            <p th:text="${errorMessage != null ? errorMessage : 'Something went wrong. Please try again.'}"
+               class="text-muted"></p>
+
+            <a href="/" class="btn btn-primary mt-3">Go Back</a>
+        </div>
     </div>
 
 </body>

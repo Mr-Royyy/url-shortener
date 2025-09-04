@@ -73,5 +73,10 @@ public String analytics(@RequestParam(value = "code", required = false) String c
                 return "analytics";
             });
 }
+@GetMapping("/about")
+public String about() {
+    return "about";
+}
+
 
 }

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>About - URL Shortener</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+
+    <!-- Navbar -->
+    <div th:replace="fragments/navbar :: *"></div>
+
+    <!-- Main content -->
+    <div class="d-flex flex-column align-items-center justify-content-center vh-100">
+        <div class="card shadow p-4" style="max-width: 700px; width: 100%;">
+            <h2 class="text-primary text-center">ℹ️ About This Project</h2>
+
+            <p class="mt-3">
+                This <strong>URL Shortener</strong> is a simple web application built with 
+                <span class="text-info">Spring Boot</span>, 
+                <span class="text-warning">Thymeleaf</span>, 
+                and <span class="text-success">Bootstrap</span>.
+            </p>
+
+            <ul class="list-group list-group-flush mt-3">
+                <li class="list-group-item">🔗 Shorten long, hard-to-remember URLs</li>
+                <li class="list-group-item">📊 Track clicks and analytics for each link</li>
+                <li class="list-group-item">⚡ Lightweight and fast with a clean UI</li>
+            </ul>
+
+            <p class="mt-3">
+                It was created as a learning project to explore <strong>Java Spring development</strong>, 
+                web design with <strong>Thymeleaf</strong>, and <strong>data persistence</strong>.
+            </p>
+
+            <div class="text-center mt-4">
+                <a href="/" class="btn btn-primary">⬅ Back Home</a>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
