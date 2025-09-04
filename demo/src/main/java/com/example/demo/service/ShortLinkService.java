@@ -1,10 +1,15 @@
 package com.example.demo.service;
 
+// import java.net.MalformedURLException;
+// import java.net.URL;
+import java.net.URI;
 import java.security.SecureRandom;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.model.ShortLink;
 import com.example.demo.repository.ShortLinkRepository;
@@ -12,57 +17,82 @@ import com.example.demo.repository.ShortLinkRepository;
 @Service
 public class ShortLinkService {
 
-    private final ShortLinkRepository shortLinkRepository;
-    private static final String ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int CODE_LENGTH = 6; // e.g., "abc123"
+    private final ShortLinkRepository repository;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private static final String BASE62 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int CODE_LENGTH = 6;
     private final SecureRandom random = new SecureRandom();
 
-    public ShortLinkService(ShortLinkRepository shortLinkRepository) {
-        this.shortLinkRepository = shortLinkRepository;
+    public ShortLinkService(ShortLinkRepository repository, RedisTemplate<String, String> redisTemplate) {
+        this.repository = repository;
+        this.redisTemplate = redisTemplate;
     }
 
-    // ✅ Generate short code
-    private String generateShortCode() {
-        StringBuilder code;
-        do {
-            code = new StringBuilder();
-            for (int i = 0; i < CODE_LENGTH; i++) {
-                int idx = random.nextInt(ALPHABET.length());
-                code.append(ALPHABET.charAt(idx));
-            }
-        } while (shortLinkRepository.existsByShortCode(code.toString())); // ensure uniqueness
-        return code.toString();
-    }
 
-    // ✅ Shorten a URL
-    public ShortLink createShortLink(String originalUrl) {
+private boolean isValidUrl(String url) {
+    try {
+        URI.create(url); // throws if invalid
+        return true;
+    } catch (Exception e) {
+        return false;
+    }
+}
+
+
+    // ✅ Create a new short link
+    @Transactional
+    public Optional<ShortLink> createShortLink(String originalUrl) {
         if (!isValidUrl(originalUrl)) {
-            throw new IllegalArgumentException("Invalid URL: " + originalUrl);
+            return Optional.empty();
         }
 
-        String shortCode = generateShortCode();
+        String shortCode;
+        do {
+            shortCode = generateShortCode();
+        } while (repository.existsByShortCode(shortCode));
+
         ShortLink shortLink = new ShortLink(shortCode, originalUrl);
-        return shortLinkRepository.save(shortLink);
+        ShortLink saved = repository.save(shortLink);
+
+        // Store in Redis (cache for 24 hours)
+        redisTemplate.opsForValue().set("short:" + shortCode, originalUrl, 24, TimeUnit.HOURS);
+
+        return Optional.of(saved);
     }
 
-    // ✅ Fetch by short code & increment click count
-    public Optional<ShortLink> getAndTrack(String shortCode) {
-        Optional<ShortLink> optional = shortLinkRepository.findByShortCode(shortCode);
-        optional.ifPresent(link -> {
+    // ✅ Fetch by short code (Redis first, then DB)
+    public Optional<ShortLink> getByShortCode(String shortCode) {
+        // Try Redis first
+        String cachedUrl = redisTemplate.opsForValue().get("short:" + shortCode);
+        if (cachedUrl != null) {
+            return Optional.of(new ShortLink(shortCode, cachedUrl));
+        }
+
+        // Fallback to DB
+        Optional<ShortLink> dbResult = repository.findByShortCode(shortCode);
+        dbResult.ifPresent(link ->
+            redisTemplate.opsForValue().set("short:" + shortCode, link.getOriginalUrl(), 24, TimeUnit.HOURS)
+        );
+
+        return dbResult;
+    }
+
+    // ✅ Increment click count (DB only)
+    @Transactional
+    public void incrementClickCount(String shortCode) {
+        repository.findByShortCode(shortCode).ifPresent(link -> {
             link.setClickCount(link.getClickCount() + 1);
-            shortLinkRepository.save(link);
+            repository.save(link);
         });
-        return optional;
     }
 
-    // ✅ Fetch analytics without increment
-    public Optional<ShortLink> getAnalytics(String shortCode) {
-        return shortLinkRepository.findByShortCode(shortCode);
-    }
-
-    // ✅ Simple URL validation
-    private boolean isValidUrl(String url) {
-        if (!StringUtils.hasText(url)) return false;
-        return url.startsWith("http://") || url.startsWith("https://");
+    // ✅ Random Base62 short code generator
+    private String generateShortCode() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < CODE_LENGTH; i++) {
+            sb.append(BASE62.charAt(random.nextInt(BASE62.length())));
+        }
+        return sb.toString();
     }
 }
