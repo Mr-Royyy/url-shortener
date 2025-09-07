@@ -26,7 +26,6 @@ public class UrlShortenerService {
         this.redisTemplate = redisTemplate;
     }
 
-    // Generate random Base62 short code
     private String generateShortCode() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < CODE_LENGTH; i++) {
@@ -35,7 +34,6 @@ public class UrlShortenerService {
         return sb.toString();
     }
 
-    // Create a new short link
     @Transactional
     public UrlMapping createShortLink(String originalUrl) {
         String shortCode;
@@ -54,7 +52,6 @@ public class UrlShortenerService {
         return saved;
     }
 
-    // Get mapping by short code
     public Optional<UrlMapping> getByShortCode(String shortCode) {
         String cached = redisTemplate.opsForValue().get("short:" + shortCode);
         if (cached != null) {
@@ -70,7 +67,6 @@ public class UrlShortenerService {
                 });
     }
 
-    // Increment click count
     @Transactional
     public void incrementClickCount(String shortCode) {
         repository.findByShortCode(shortCode).ifPresent(mapping -> {
