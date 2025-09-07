@@ -26,7 +26,7 @@ public class UrlShortenerService {
         this.redisTemplate = redisTemplate;
     }
 
-    // ✅ Generate random short code
+    // Generate random Base62 short code
     private String generateShortCode() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < CODE_LENGTH; i++) {
@@ -35,7 +35,7 @@ public class UrlShortenerService {
         return sb.toString();
     }
 
-    // ✅ Create a new short link
+    // Create a new short link
     @Transactional
     public UrlMapping createShortLink(String originalUrl) {
         String shortCode;
@@ -43,30 +43,39 @@ public class UrlShortenerService {
             shortCode = generateShortCode();
         } while (repository.existsByShortCode(shortCode));
 
-        UrlMapping urlMapping = new UrlMapping();
-        urlMapping.setShortCode(shortCode);
-        urlMapping.setOriginalUrl(originalUrl);
+        UrlMapping mapping = new UrlMapping();
+        mapping.setShortCode(shortCode);
+        mapping.setOriginalUrl(originalUrl);
+        mapping.setClickCount(0);
 
-        UrlMapping saved = repository.save(urlMapping);
-
-        // Save in Redis for 24h
+        UrlMapping saved = repository.save(mapping);
         redisTemplate.opsForValue().set("short:" + shortCode, originalUrl, 24, TimeUnit.HOURS);
 
         return saved;
     }
 
-    // ✅ Get by short code
-    public Optional<String> getOriginalUrl(String shortCode) {
-        // Check Redis first
+    // Get mapping by short code
+    public Optional<UrlMapping> getByShortCode(String shortCode) {
         String cached = redisTemplate.opsForValue().get("short:" + shortCode);
         if (cached != null) {
-            return Optional.of(cached);
+            UrlMapping mapping = new UrlMapping();
+            mapping.setShortCode(shortCode);
+            mapping.setOriginalUrl(cached);
+            return Optional.of(mapping);
         }
+        return repository.findByShortCode(shortCode)
+                .map(mapping -> {
+                    redisTemplate.opsForValue().set("short:" + shortCode, mapping.getOriginalUrl(), 24, TimeUnit.HOURS);
+                    return mapping;
+                });
+    }
 
-        // Fallback to DB
-        return repository.findByShortCode(shortCode).map(urlMapping -> {
-            redisTemplate.opsForValue().set("short:" + shortCode, urlMapping.getOriginalUrl(), 24, TimeUnit.HOURS);
-            return urlMapping.getOriginalUrl();
+    // Increment click count
+    @Transactional
+    public void incrementClickCount(String shortCode) {
+        repository.findByShortCode(shortCode).ifPresent(mapping -> {
+            mapping.setClickCount(mapping.getClickCount() + 1);
+            repository.save(mapping);
         });
     }
 }

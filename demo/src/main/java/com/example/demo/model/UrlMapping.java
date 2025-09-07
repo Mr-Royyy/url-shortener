@@ -1,5 +1,8 @@
 package com.example.demo.model;
 
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -12,33 +15,29 @@ public class UrlMapping {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
     private String shortCode;
+
+    @Column(nullable = false)
     private String originalUrl;
 
-    // ✅ Default constructor (needed by JPA and for new UrlMapping())
-    public UrlMapping() {
-    }
+    @Column(nullable = false)
+    private int clickCount = 0;
 
-    // ✅ Constructor with arguments
-    public UrlMapping(String shortCode, String originalUrl) {
-        this.shortCode = shortCode;
-        this.originalUrl = originalUrl;
-    }
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    // ✅ Getters and Setters
-    public String getShortCode() {
-        return shortCode;
-    }
+    // ===== Getters & Setters =====
+    public Long getId() { return id; }
 
-    public void setShortCode(String shortCode) {
-        this.shortCode = shortCode;
-    }
+    public String getShortCode() { return shortCode; }
+    public void setShortCode(String shortCode) { this.shortCode = shortCode; }
 
-    public String getOriginalUrl() {
-        return originalUrl;
-    }
+    public String getOriginalUrl() { return originalUrl; }
+    public void setOriginalUrl(String originalUrl) { this.originalUrl = originalUrl; }
 
-    public void setOriginalUrl(String originalUrl) {
-        this.originalUrl = originalUrl;
-    }
+    public int getClickCount() { return clickCount; }
+    public void setClickCount(int clickCount) { this.clickCount = clickCount; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -1,21 +1,20 @@
 package com.example.demo.controller;
 
 import java.net.URI;
-import java.util.Map;
+import java.net.URISyntaxException;
+import java.util.Optional;
 
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.demo.model.UrlMapping;
 import com.example.demo.service.UrlShortenerService;
 
-@RestController
-@RequestMapping("/api") // Prefixes all endpoints with /api
+@Controller
 public class UrlController {
 
     private final UrlShortenerService service;
@@ -24,26 +23,69 @@ public class UrlController {
         this.service = service;
     }
 
-    // API: Create new short link
-    @PostMapping("/shorten")
-    public ResponseEntity<?> shorten(@RequestBody Map<String, String> request) {
-        String originalUrl = request.get("url");
-        if (originalUrl == null || originalUrl.isBlank()) {
-            return ResponseEntity.badRequest().body("Missing URL");
-        }
-        UrlMapping mapping = service.createShortLink(originalUrl);
-        return ResponseEntity.ok(Map.of(
-                "shortCode", mapping.getShortCode(),
-                "shortUrl", "http://localhost:8080/api/u/" + mapping.getShortCode(),
-                "originalUrl", mapping.getOriginalUrl()
-        ));
+    // =========================
+    // Render main page
+    // =========================
+    @GetMapping("/")
+    public String index() {
+        return "index";
     }
 
-    // API: Redirect from short code (API)
-    @GetMapping("/u/{shortCode}") // Note the /u prefix
-    public ResponseEntity<?> redirect(@PathVariable String shortCode) {
-        return service.getOriginalUrl(shortCode)
-                .map(url -> ResponseEntity.status(302).location(URI.create(url)).build())
-                .orElse(ResponseEntity.notFound().build());
+    // =========================
+    // Handle URL shortening form
+    // =========================
+    @PostMapping("/shorten")
+    public String shortenUrl(@RequestParam("url") String originalUrl, Model model) {
+        if (originalUrl == null || originalUrl.isBlank()) {
+            model.addAttribute("errorMessage", "URL cannot be empty");
+            return "index";
+        }
+
+        try {
+            new URI(originalUrl); // validate URL
+        } catch (URISyntaxException e) {
+            model.addAttribute("errorMessage", "Invalid URL format");
+            return "index";
+        }
+
+        UrlMapping mapping = service.createShortLink(originalUrl);
+        model.addAttribute("shortLink", mapping);
+        return "index";
+    }
+
+    // =========================
+    // Redirect short URL
+    // =========================
+    @GetMapping("/api/u/{shortCode}")
+    public String redirectShortUrl(@PathVariable String shortCode) {
+        Optional<UrlMapping> link = service.getByShortCode(shortCode);
+        if (link.isEmpty()) {
+            return "redirect:/?errorMessage=Short URL not found";
+        }
+
+        service.incrementClickCount(shortCode);
+        return "redirect:" + link.get().getOriginalUrl();
+    }
+
+    // =========================
+    // Render analytics page
+    // =========================
+    @GetMapping("/analytics")
+    public String analyticsPage() {
+        return "analytics";
+    }
+
+    // =========================
+    // Handle analytics form
+    // =========================
+    @GetMapping("/analytics/check")
+    public String checkAnalytics(@RequestParam("code") String shortCode, Model model) {
+        Optional<UrlMapping> link = service.getByShortCode(shortCode);
+        if (link.isEmpty()) {
+            model.addAttribute("errorMessage", "Short URL not found");
+        } else {
+            model.addAttribute("shortLink", link.get());
+        }
+        return "analytics";
     }
 }

@@ -7,16 +7,13 @@
 </head>
 <body class="bg-light">
 
-    <!-- Navbar -->
-    <div th:replace="fragments/navbar :: *"></div>
-
     <!-- Main content -->
     <div class="d-flex flex-column align-items-center justify-content-center vh-100">
         <div class="card shadow p-4" style="max-width: 600px; width: 100%;">
             <h2 class="text-info text-center">📊 Link Analytics</h2>
 
-            <!-- Search form -->
-            <form action="/analytics" method="get" class="mt-3 d-flex">
+            <!-- Analytics search form -->
+            <form th:action="@{/analytics/check}" method="get" class="mt-3 d-flex">
                 <input type="text" name="code" class="form-control me-2" placeholder="Enter short code (e.g., abc123)" required>
                 <button type="submit" class="btn btn-info">Check</button>
             </form>
@@ -24,16 +21,16 @@
             <!-- Show analytics if available -->
             <div th:if="${shortLink != null}" class="mt-4">
                 <h5 class="text-success">Results:</h5>
-                <p><strong>Original URL:</strong> 
+                <p><strong>Original URL:</strong>
                    <a th:href="${shortLink.originalUrl}" th:text="${shortLink.originalUrl}" target="_blank"></a>
                 </p>
-                <p><strong>Short URL:</strong> 
-                   <span th:text="'http://localhost:8080/' + ${shortLink.shortCode}"></span>
+                <p><strong>Short URL:</strong>
+                   <span th:text="'http://localhost:8081/api/u/' + ${shortLink.shortCode}"></span>
                 </p>
-                <p><strong>Clicks:</strong> 
+                <p><strong>Clicks:</strong>
                    <span th:text="${shortLink.clickCount}"></span>
                 </p>
-                <p><strong>Created At:</strong> 
+                <p><strong>Created At:</strong>
                    <span th:text="${shortLink.createdAt}"></span>
                 </p>
             </div>
