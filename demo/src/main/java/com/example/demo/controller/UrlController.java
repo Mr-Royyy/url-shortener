@@ -23,17 +23,11 @@ public class UrlController {
         this.service = service;
     }
 
-    // =========================
-    // Render main page
-    // =========================
     @GetMapping("/")
     public String index() {
         return "index";
     }
 
-    // =========================
-    // Handle URL shortening form
-    // =========================
     @PostMapping("/shorten")
     public String shortenUrl(@RequestParam("url") String originalUrl, Model model) {
         if (originalUrl == null || originalUrl.isBlank()) {
@@ -42,7 +36,7 @@ public class UrlController {
         }
 
         try {
-            new URI(originalUrl); // validate URL
+            new URI(originalUrl);
         } catch (URISyntaxException e) {
             model.addAttribute("errorMessage", "Invalid URL format");
             return "index";
@@ -53,9 +47,6 @@ public class UrlController {
         return "index";
     }
 
-    // =========================
-    // Redirect short URL
-    // =========================
     @GetMapping("/api/u/{shortCode}")
     public String redirectShortUrl(@PathVariable String shortCode) {
         Optional<UrlMapping> link = service.getByShortCode(shortCode);
@@ -67,17 +58,11 @@ public class UrlController {
         return "redirect:" + link.get().getOriginalUrl();
     }
 
-    // =========================
-    // Render analytics page
-    // =========================
     @GetMapping("/analytics")
     public String analyticsPage() {
         return "analytics";
     }
 
-    // =========================
-    // Handle analytics form
-    // =========================
     @GetMapping("/analytics/check")
     public String checkAnalytics(@RequestParam("code") String shortCode, Model model) {
         Optional<UrlMapping> link = service.getByShortCode(shortCode);
