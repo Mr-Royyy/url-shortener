@@ -1,12 +1,16 @@
 package com.example.demo.controller;
 
-import com.example.demo.model.ShortLink;
-import com.example.demo.service.ShortLinkService;
+import java.util.Optional;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.Optional;
+import com.example.demo.model.ShortLink;
+import com.example.demo.service.ShortLinkService;
 
 @Controller
 public class ShortLinkController {
@@ -17,13 +21,13 @@ public class ShortLinkController {
         this.service = service;
     }
 
-    // ✅ Home page
+    // Home
     @GetMapping("/")
     public String index() {
         return "index";
     }
 
-    // ✅ Handle shorten request
+    // Web form shorten (POST)
     @PostMapping("/shorten")
     public String shortenUrl(@RequestParam("url") String originalUrl, Model model) {
         Optional<ShortLink> result = service.createShortLink(originalUrl);
@@ -39,8 +43,8 @@ public class ShortLinkController {
         return "result";
     }
 
-    // ✅ Redirect handler
-    @GetMapping("/{shortCode}")
+    // Redirect (Web)
+    @GetMapping("/{shortCode}") // This is fine as long as /api/u/{shortCode} has no overlap
     public String redirect(@PathVariable String shortCode) {
         Optional<ShortLink> link = service.getByShortCode(shortCode);
 
@@ -52,13 +56,12 @@ public class ShortLinkController {
         return "redirect:" + link.get().getOriginalUrl();
     }
 
-    // ✅ Analytics page
+    // Analytics page (Web)
     @GetMapping("/analytics")
     public String analytics(@RequestParam(value = "code", required = false) String code, Model model) {
         if (code == null || code.isBlank()) {
-            return "analytics"; // show empty form first
+            return "analytics";
         }
-
         return service.getByShortCode(code)
                 .map(link -> {
                     model.addAttribute("shortLink", link);
@@ -70,7 +73,7 @@ public class ShortLinkController {
                 });
     }
 
-    // ✅ About page
+    // About
     @GetMapping("/about")
     public String about() {
         return "about";
