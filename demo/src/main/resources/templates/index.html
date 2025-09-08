@@ -23,8 +23,11 @@
             <div th:if="${shortLink != null}" class="mt-4">
                 <h5 class="text-success">Shortened URL:</h5>
                 <p>
-                    <a th:href="@{'/api/u/' + ${shortLink.shortCode}}" th:text="'http://localhost:8081/api/u/' + ${shortLink.shortCode}" target="_blank"></a>
-                </p>
+    <a th:href="@{/api/u/{code}(code=${shortLink.shortCode})}"
+       th:text="@{/api/u/{code}(code=${shortLink.shortCode})}"
+       target="_blank"></a>
+</p>
+
             </div>
 
             <!-- Error message -->
