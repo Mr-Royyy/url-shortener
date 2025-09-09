@@ -1,4 +1,4 @@
-package com.example.demo.repository; // <-- this must match the folder structure
+package com.example.demo.repository.jpa;
 
 import java.util.Optional;
 
