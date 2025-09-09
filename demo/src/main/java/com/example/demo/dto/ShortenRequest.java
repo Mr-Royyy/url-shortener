@@ -9,4 +9,10 @@ public class ShortenRequest {
 
     public String getCustomCode() { return customCode; }
     public void setCustomCode(String customCode) { this.customCode = customCode; }
+
+    private String expiry; // ISO-8601 datetime string
+
+public String getExpiry() { return expiry; }
+public void setExpiry(String expiry) { this.expiry = expiry; }
+
 }

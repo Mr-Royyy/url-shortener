@@ -43,4 +43,19 @@ public class UrlMapping {
 
     // Increment click count
     public void incrementClickCount() { this.clickCount++; }
+
+    private LocalDateTime expiryDate;
+
+    // getter & setter
+    public LocalDateTime getExpiryDate() {
+        return expiryDate;
+    }
+    public void setExpiryDate(LocalDateTime expiryDate) {
+        this.expiryDate = expiryDate;
+    }
+
+    // check if expired
+    public boolean isExpired() {
+        return expiryDate != null && LocalDateTime.now().isAfter(expiryDate);
+    }
 }

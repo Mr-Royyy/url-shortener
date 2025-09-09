@@ -2,6 +2,8 @@ package com.example.demo.controller;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
 import org.springframework.http.HttpHeaders;
@@ -34,6 +36,7 @@ public class UrlShortenerRestController {
     public ResponseEntity<?> shortenUrl(@RequestBody ShortenRequest request) {
         String url = request.getUrl();
         String code = request.getCustomCode();
+        String expiryStr = request.getExpiry();
 
         if (url == null || url.isBlank()) {
             return ResponseEntity.badRequest().body("URL cannot be empty");
@@ -45,12 +48,21 @@ public class UrlShortenerRestController {
             return ResponseEntity.badRequest().body("Invalid URL format");
         }
 
+        LocalDateTime expiryDate = null;
+        if (expiryStr != null && !expiryStr.isBlank()) {
+            try {
+                expiryDate = LocalDateTime.parse(expiryStr);
+            } catch (DateTimeParseException e) {
+                return ResponseEntity.badRequest().body("Invalid expiry date format");
+            }
+        }
+
         try {
             UrlMapping mapping;
             if (code != null && !code.isBlank()) {
-                mapping = service.createLink(url, code);
+                mapping = service.createLink(url, code, expiryDate);
             } else {
-                mapping = service.createLink(url);
+                mapping = service.createLink(url, expiryDate);
             }
             String shortUrl = String.format("http://localhost:8081/api/u/%s", mapping.getShortCode());
             return ResponseEntity.ok(new ShortenResponse(shortUrl));
@@ -81,10 +93,10 @@ public class UrlShortenerRestController {
         }
         UrlMapping m = mapping.get();
         AnalyticsResponse response = new AnalyticsResponse(
-                m.getOriginalUrl(),
-                m.getShortCode(),
-                m.getClickCount(),
-                m.getCreatedAt()
+            m.getOriginalUrl(),
+            m.getShortCode(),
+            m.getClickCount(),
+            m.getCreatedAt()
         );
         return ResponseEntity.ok(response);
     }

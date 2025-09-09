@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
 
@@ -24,68 +25,79 @@ public class UrlShortenerService {
     }
 
     public UrlMapping createLink(String originalUrl) {
+        return createLink(originalUrl, null);
+    }
+
+    public UrlMapping createLink(String originalUrl, LocalDateTime expiry) {
         if (!isValidUrl(originalUrl)) {
-            throw new IllegalArgumentException("Invalid URL: " + originalUrl);
+            throw new IllegalArgumentException("Invalid URL");
         }
         Optional<UrlMapping> existing = repository.findByOriginalUrl(originalUrl);
-        if (existing.isPresent()) {
+        if (existing.isPresent() && !existing.get().isExpired()) {
             return existing.get();
         }
         String code;
         do {
             code = generateCode();
         } while (repository.findByShortCode(code).isPresent());
-        return createMapping(originalUrl, code);
+        return createMapping(originalUrl, code, expiry);
     }
 
-    public UrlMapping createLink(String originalUrl, String customCode) {
+    public UrlMapping createLink(String originalUrl, String customCode, LocalDateTime expiry) {
         if (!isValidUrl(originalUrl)) {
-            throw new IllegalArgumentException("Invalid URL: " + originalUrl);
+            throw new IllegalArgumentException("Invalid URL");
         }
         if (!isValidCode(customCode)) {
-            throw new IllegalArgumentException("Invalid custom code: " + customCode);
+            throw new IllegalArgumentException("Invalid custom code");
         }
         if (repository.findByShortCode(customCode).isPresent()) {
-            throw new IllegalArgumentException("Custom code already in use");
+            throw new IllegalArgumentException("Custom code already exists");
         }
-        return createMapping(originalUrl, customCode);
+        return createMapping(originalUrl, customCode, expiry);
     }
 
-    private UrlMapping createMapping(String originalUrl, String code) {
-        UrlMapping mapping = new UrlMapping();
-        mapping.setOriginalUrl(originalUrl);
-        mapping.setShortCode(code);
-        repository.save(mapping);
+    private UrlMapping createMapping(String originalUrl, String code, LocalDateTime expiry) {
+        UrlMapping urlMapping = new UrlMapping();
+        urlMapping.setOriginalUrl(originalUrl);
+        urlMapping.setShortCode(code);
+        urlMapping.setExpiryDate(expiry);
+        repository.save(urlMapping);
         redisTemplate.opsForValue().set(REDIS_PREFIX + code, originalUrl);
-        return mapping;
+        return urlMapping;
     }
 
     public Optional<UrlMapping> getByCode(String code) {
         String cached = redisTemplate.opsForValue().get(REDIS_PREFIX + code);
         if (cached != null) {
-            UrlMapping m = new UrlMapping();
-            m.setShortCode(code);
-            m.setOriginalUrl(cached);
-            return Optional.of(m);
+            UrlMapping mapping = new UrlMapping();
+            mapping.setShortCode(code);
+            mapping.setOriginalUrl(cached);
+            if (mapping.isExpired()) {
+                return Optional.empty();
+            }
+            return Optional.of(mapping);
         }
-        Optional<UrlMapping> found = repository.findByShortCode(code);
-        found.ifPresent(f -> redisTemplate.opsForValue().set(REDIS_PREFIX + code, f.getOriginalUrl()));
-        return found;
+        Optional<UrlMapping> dbMapping = repository.findByShortCode(code);
+        if (dbMapping.isPresent() && !dbMapping.get().isExpired()) {
+            redisTemplate.opsForValue().set(REDIS_PREFIX + code, dbMapping.get().getOriginalUrl());
+            return dbMapping;
+        }
+        return Optional.empty();
     }
 
     public void incrementClicks(String code) {
-        repository.findByShortCode(code).ifPresent(m -> {
-            m.incrementClickCount();
-            repository.save(m);
+        repository.findByShortCode(code).ifPresent(link -> {
+            link.incrementClickCount();
+            repository.save(link);
         });
     }
 
     private String generateCode() {
         String allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        Random rnd = new Random();
+        Random random = new Random();
         StringBuilder sb = new StringBuilder(6);
         for (int i = 0; i < 6; i++) {
-            sb.append(allowed.charAt(rnd.nextInt(allowed.length())));
+            sb.append(allowed.charAt(random.nextInt(allowed.length())));
         }
         return sb.toString();
     }
@@ -94,7 +106,7 @@ public class UrlShortenerService {
         try {
             new URL(url);
             return true;
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException ex) {
             return false;
         }
     }
