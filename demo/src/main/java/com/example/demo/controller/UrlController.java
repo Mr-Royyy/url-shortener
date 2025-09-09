@@ -76,14 +76,18 @@ public class UrlController {
     }
 
     @GetMapping("/api/u/{code}")
-    public String redirect(@PathVariable String code) {
-        Optional<UrlMapping> link = service.getByCode(code);
-        if (link.isEmpty()) {
-            return "redirect:/?errorMessage=Short URL not found";
-        }
-        service.incrementClicks(code);
-        return "redirect:" + link.get().getOriginalUrl();
+public String redirect(@PathVariable String code) {
+    Optional<UrlMapping> link = service.getByCode(code);
+    if (link.isEmpty()) {
+        return "redirect:/?errorMessage=Short URL not found";
     }
+    service.incrementClicks(code);
+    // Correct usage without extra .get():
+    return "redirect:" + link.get().getOriginalUrl();
+}
+
+
+    
 
     @GetMapping("/analytics")
     public String analyticsPage() {
