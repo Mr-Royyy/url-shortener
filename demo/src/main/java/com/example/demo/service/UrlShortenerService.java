@@ -1,12 +1,9 @@
 package com.example.demo.service;
 
-import java.security.SecureRandom;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import java.util.Random;
 
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.model.UrlMapping;
 import com.example.demo.repository.UrlMappingRepository;
@@ -15,63 +12,49 @@ import com.example.demo.repository.UrlMappingRepository;
 public class UrlShortenerService {
 
     private final UrlMappingRepository repository;
-    private final RedisTemplate<String, String> redisTemplate;
 
-    private static final String BASE62 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int CODE_LENGTH = 6;
-    private final SecureRandom random = new SecureRandom();
-
-    public UrlShortenerService(UrlMappingRepository repository, RedisTemplate<String, String> redisTemplate) {
+    public UrlShortenerService(UrlMappingRepository repository) {
         this.repository = repository;
-        this.redisTemplate = redisTemplate;
     }
 
-    private String generateShortCode() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            sb.append(BASE62.charAt(random.nextInt(BASE62.length())));
-        }
-        return sb.toString();
-    }
-
-    @Transactional
+    // Create a short link
     public UrlMapping createShortLink(String originalUrl) {
-        String shortCode;
+        // Check if URL already exists
+        Optional<UrlMapping> existing = repository.findByOriginalUrl(originalUrl);
+        if (existing.isPresent()) return existing.get();
+
+        // Generate unique short code
+        String code;
         do {
-            shortCode = generateShortCode();
-        } while (repository.existsByShortCode(shortCode));
+            code = generateShortCode();
+        } while (repository.findByShortCode(code).isPresent());
 
         UrlMapping mapping = new UrlMapping();
-        mapping.setShortCode(shortCode);
         mapping.setOriginalUrl(originalUrl);
-        mapping.setClickCount(0);
-
-        UrlMapping saved = repository.save(mapping);
-        redisTemplate.opsForValue().set("short:" + shortCode, originalUrl, 24, TimeUnit.HOURS);
-
-        return saved;
+        mapping.setShortCode(code);
+        repository.save(mapping);
+        return mapping;
     }
 
+    // Retrieve by short code
     public Optional<UrlMapping> getByShortCode(String shortCode) {
-        String cached = redisTemplate.opsForValue().get("short:" + shortCode);
-        if (cached != null) {
-            UrlMapping mapping = new UrlMapping();
-            mapping.setShortCode(shortCode);
-            mapping.setOriginalUrl(cached);
-            return Optional.of(mapping);
-        }
-        return repository.findByShortCode(shortCode)
-                .map(mapping -> {
-                    redisTemplate.opsForValue().set("short:" + shortCode, mapping.getOriginalUrl(), 24, TimeUnit.HOURS);
-                    return mapping;
-                });
+        return repository.findByShortCode(shortCode);
     }
 
-    @Transactional
+    // Increment click count
     public void incrementClickCount(String shortCode) {
-        repository.findByShortCode(shortCode).ifPresent(mapping -> {
-            mapping.setClickCount(mapping.getClickCount() + 1);
-            repository.save(mapping);
+        repository.findByShortCode(shortCode).ifPresent(link -> {
+            link.incrementClickCount();
+            repository.save(link);
         });
+    }
+
+    // Generate random 6-character code
+    private String generateShortCode() {
+        String chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < 6; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
+        return sb.toString();
     }
 }

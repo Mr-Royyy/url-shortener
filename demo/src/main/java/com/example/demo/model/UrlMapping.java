@@ -40,4 +40,7 @@ public class UrlMapping {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    // Increment click count
+    public void incrementClickCount() { this.clickCount++; }
 }

@@ -23,17 +23,13 @@ public class UrlController {
         this.service = service;
     }
 
-    // Home page
     @GetMapping("/")
     public String index(Model model,
                         @RequestParam(value = "errorMessage", required = false) String errorMessage) {
-        if (errorMessage != null) {
-            model.addAttribute("errorMessage", errorMessage);
-        }
+        if (errorMessage != null) model.addAttribute("errorMessage", errorMessage);
         return "index";
     }
 
-    // Shorten URL
     @PostMapping("/shorten")
     public String shortenUrl(@RequestParam("url") String originalUrl, Model model) {
         if (originalUrl == null || originalUrl.isBlank()) {
@@ -41,9 +37,8 @@ public class UrlController {
             return "index";
         }
 
-        try {
-            new URI(originalUrl);
-        } catch (URISyntaxException e) {
+        try { new URI(originalUrl); }
+        catch (URISyntaxException e) {
             model.addAttribute("errorMessage", "Invalid URL format");
             return "index";
         }
@@ -53,37 +48,26 @@ public class UrlController {
         return "index";
     }
 
-    // Redirect short URL
     @GetMapping("/api/u/{shortCode}")
     public String redirectShortUrl(@PathVariable String shortCode) {
         Optional<UrlMapping> link = service.getByShortCode(shortCode);
-        if (link.isEmpty()) {
-            return "redirect:/?errorMessage=Short URL not found";
-        }
+        if (link.isEmpty()) return "redirect:/?errorMessage=Short URL not found";
 
         service.incrementClickCount(shortCode);
         return "redirect:" + link.get().getOriginalUrl();
     }
 
-    // Analytics page
     @GetMapping("/analytics")
-    public String analyticsPage() {
-        return "analytics";
-    }
+    public String analyticsPage() { return "analytics"; }
 
-    // Check analytics for a short code
     @GetMapping("/analytics/check")
     public String checkAnalytics(@RequestParam("code") String shortCode, Model model) {
         Optional<UrlMapping> link = service.getByShortCode(shortCode);
-        if (link.isEmpty()) {
-            model.addAttribute("errorMessage", "Short URL not found");
-        } else {
-            model.addAttribute("shortLink", link.get());
-        }
+        if (link.isEmpty()) model.addAttribute("errorMessage", "Short URL not found");
+        else model.addAttribute("shortLink", link.get());
         return "analytics";
     }
 
-    // Fallback error mapping
     @GetMapping("/error")
     public String handleError(Model model) {
         model.addAttribute("errorMessage", "Page not found");
