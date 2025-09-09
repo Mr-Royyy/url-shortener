@@ -9,7 +9,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.model.UrlMapping;
-import com.example.demo.repository.UrlMappingRepository;
+import com.example.demo.repository.jpa.UrlMappingRepository;
 
 @Service
 public class UrlShortenerService {
