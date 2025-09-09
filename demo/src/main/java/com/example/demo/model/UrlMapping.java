@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Transient;
 
 @Entity
 public class UrlMapping {
@@ -15,46 +16,68 @@ public class UrlMapping {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String originalUrl;
+
     @Column(unique = true)
     private String shortCode;
 
-    @Column(nullable = false)
-    private String originalUrl;
-
-    @Column(nullable = false)
     private int clickCount = 0;
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // ===== Getters & Setters =====
-    public Long getId() { return id; }
-
-    public String getShortCode() { return shortCode; }
-    public void setShortCode(String shortCode) { this.shortCode = shortCode; }
-
-    public String getOriginalUrl() { return originalUrl; }
-    public void setOriginalUrl(String originalUrl) { this.originalUrl = originalUrl; }
-
-    public int getClickCount() { return clickCount; }
-    public void setClickCount(int clickCount) { this.clickCount = clickCount; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    // Increment click count
-    public void incrementClickCount() { this.clickCount++; }
-
     private LocalDateTime expiryDate;
 
-    // getter & setter
+    // Getters and setters
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getOriginalUrl() {
+        return originalUrl;
+    }
+
+    public void setOriginalUrl(String originalUrl) {
+        this.originalUrl = originalUrl;
+    }
+
+    public String getShortCode() {
+        return shortCode;
+    }
+
+    public void setShortCode(String shortCode) {
+        this.shortCode = shortCode;
+    }
+
+    public int getClickCount() {
+        return clickCount;
+    }
+
+    public void setClickCount(int clickCount) {
+        this.clickCount = clickCount;
+    }
+
+    public void incrementClickCount() {
+        this.clickCount += 1;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public LocalDateTime getExpiryDate() {
         return expiryDate;
     }
+
     public void setExpiryDate(LocalDateTime expiryDate) {
         this.expiryDate = expiryDate;
     }
 
-    // check if expired
+    @Transient
     public boolean isExpired() {
         return expiryDate != null && LocalDateTime.now().isAfter(expiryDate);
     }
