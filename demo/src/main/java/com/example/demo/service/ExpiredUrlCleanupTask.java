@@ -11,21 +11,19 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.model.UrlMapping;
 import com.example.demo.repository.jpa.UrlMappingRepository;
 
-
 @Component
 public class ExpiredUrlCleanupTask {
 
     private final UrlMappingRepository repository;
     private final RedisTemplate<String, String> redisTemplate;
-    private static final String REDIS_PREFIX = "shortUrl:";
+    private static final String REDIS_PREFIX = "url:";
 
     public ExpiredUrlCleanupTask(UrlMappingRepository repository, RedisTemplate<String, String> redisTemplate) {
         this.repository = repository;
         this.redisTemplate = redisTemplate;
     }
 
-    // Runs every day at 2 AM
-    @Scheduled(cron = "0 0 2 * * ?")
+    @Scheduled(cron = "0 0 2 * * ?") // Runs daily at 2 AM
     @Transactional
     public void cleanExpiredUrls() {
         List<UrlMapping> expiredUrls = repository.findAllByExpiryDateBefore(LocalDateTime.now());

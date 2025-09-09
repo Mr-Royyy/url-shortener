@@ -13,3 +13,4 @@ public interface UrlMappingRepository extends JpaRepository<UrlMapping, Long> {
     Optional<UrlMapping> findByShortCode(String shortCode);
     List<UrlMapping> findAllByExpiryDateBefore(LocalDateTime now);
 }
+    

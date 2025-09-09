@@ -82,3 +82,4 @@ public class UrlMapping {
         return expiryDate != null && LocalDateTime.now().isAfter(expiryDate);
     }
 }
+    

@@ -19,11 +19,11 @@ public class RateLimitingFilter implements Filter {
 
     private static final int MAX_REQUESTS_PER_MINUTE = 20;
     private final ConcurrentHashMap<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
-    private long lastResetTime = System.currentTimeMillis();
+    private volatile long lastResetTime = System.currentTimeMillis();
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) 
-        throws IOException, ServletException {
+            throws IOException, ServletException {
 
         long now = System.currentTimeMillis();
 

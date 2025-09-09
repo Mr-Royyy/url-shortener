@@ -25,6 +25,9 @@
             <input type="datetime-local" id="expiry" name="expiry" class="form-control" />
         </div>
 
+        <!-- Honeypot field to trap bots; real users won't fill this -->
+        <input type="text" name="honeypot" style="display:none" autocomplete="off" tabindex="-1"/>
+
         <button type="submit" class="btn btn-primary w-100">Shorten URL</button>
     </form>
 
@@ -42,34 +45,31 @@
     <div th:if="${errorMessage != null}" class="alert alert-danger mt-3" th:text="${errorMessage}"></div>
 </div>
 
-
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Copy button functionality
-    document.querySelectorAll('button').forEach(button => {
-      button.addEventListener('click', function() {
-        const urlText = this.previousElementSibling.textContent;
-        navigator.clipboard.writeText(urlText).then(() => {
-          alert('Short URL copied to clipboard!');
-        });
-      });
-    });
+  document.addEventListener('DOMContentLoaded', function() {
+    // Copy button functionality
+    document.querySelectorAll('button').forEach(button => {
+      button.addEventListener('click', function() {
+        const urlText = this.previousElementSibling.textContent;
+        navigator.clipboard.writeText(urlText).then(() => {
+          alert('Short URL copied to clipboard!');
+        });
+      });
+    });
 
-    // Basic client-side validation for custom code pattern
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function(event) {
-      const customCodeInput = document.querySelector('input[name="customCode"]');
-      if (customCodeInput.value && !/^[A-Za-z0-9]{4,10}$/.test(customCodeInput.value)) {
-        event.preventDefault();
-        alert('Custom code must be 4 to 10 alphanumeric characters.');
-        customCodeInput.focus();
-        return false;
-      }
-    });
-  });
+    // Basic client-side validation for custom code pattern
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+      const customCodeInput = document.querySelector('input[name="customCode"]');
+      if (customCodeInput.value && !/^[A-Za-z0-9]{4,10}$/.test(customCodeInput.value)) {
+        event.preventDefault();
+        alert('Custom code must be 4 to 10 alphanumeric characters.');
+        customCodeInput.focus();
+        return false;
+      }
+    });
+  });
 </script>
-
-
 
 </body>
 </html>
