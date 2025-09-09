@@ -1,5 +1,7 @@
 package com.example.demo.service;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Optional;
 import java.util.Random;
 
@@ -23,6 +25,9 @@ public class UrlShortenerService {
 
     // Create short link
     public UrlMapping createShortLink(String originalUrl) {
+        if (!isValidUrl(originalUrl)) {
+        throw new IllegalArgumentException("Invalid URL: " + originalUrl);
+    }
         Optional<UrlMapping> existing = repository.findByOriginalUrl(originalUrl);
         if (existing.isPresent()) {
             return existing.get();
@@ -79,4 +84,13 @@ public class UrlShortenerService {
         }
         return sb.toString();
     }
+
+    public boolean isValidUrl(String url) {
+    try {
+        new URL(url);
+        return true;
+    } catch (MalformedURLException e) {
+        return false;
+    }
+}
 }

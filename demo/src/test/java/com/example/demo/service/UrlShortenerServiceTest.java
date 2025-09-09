@@ -21,7 +21,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import com.example.demo.model.UrlMapping;
-import com.example.demo.repository.UrlMappingRepository;
+import com.example.demo.repository.jpa.UrlMappingRepository;
 
 
 class UrlShortenerServiceTest {
