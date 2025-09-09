@@ -23,7 +23,6 @@ import org.springframework.data.redis.core.ValueOperations;
 import com.example.demo.model.UrlMapping;
 import com.example.demo.repository.jpa.UrlMappingRepository;
 
-
 class UrlShortenerServiceTest {
 
     @Mock
@@ -45,14 +44,14 @@ class UrlShortenerServiceTest {
     }
 
     @Test
-    void testCreateShortLinkReturnsExistingIfPresent() {
+    void testCreateLinkReturnsExistingIfPresent() {
         String originalUrl = "http://example.com";
         UrlMapping existingMapping = new UrlMapping();
         existingMapping.setOriginalUrl(originalUrl);
 
         when(repository.findByOriginalUrl(originalUrl)).thenReturn(Optional.of(existingMapping));
 
-        UrlMapping mapping = service.createShortLink(originalUrl);
+        UrlMapping mapping = service.createLink(originalUrl);
 
         assertEquals(existingMapping, mapping);
         verify(repository, never()).save(any());
@@ -60,7 +59,7 @@ class UrlShortenerServiceTest {
     }
 
     @Test
-    void testCreateShortLinkCreatesAndCachesNew() {
+    void testCreateLinkCreatesAndCachesNew() {
         String originalUrl = "http://newurl.com";
 
         when(repository.findByOriginalUrl(originalUrl)).thenReturn(Optional.empty());
@@ -72,7 +71,7 @@ class UrlShortenerServiceTest {
             return arg;
         }).when(repository).save(any());
 
-        UrlMapping mapping = service.createShortLink(originalUrl);
+        UrlMapping mapping = service.createLink(originalUrl);
 
         assertNotNull(mapping.getShortCode());
         assertEquals(originalUrl, mapping.getOriginalUrl());
@@ -81,13 +80,13 @@ class UrlShortenerServiceTest {
     }
 
     @Test
-    void testGetByShortCodeCacheHitReturnsMapping() {
+    void testGetByCodeCacheHitReturnsMapping() {
         String shortCode = "abc123";
         String cachedUrl = "http://cached.com";
 
         when(valueOperations.get("shortUrl:" + shortCode)).thenReturn(cachedUrl);
 
-        Optional<UrlMapping> optionalMapping = service.getByShortCode(shortCode);
+        Optional<UrlMapping> optionalMapping = service.getByCode(shortCode);
 
         assertTrue(optionalMapping.isPresent());
         assertEquals(shortCode, optionalMapping.get().getShortCode());
@@ -96,7 +95,7 @@ class UrlShortenerServiceTest {
     }
 
     @Test
-    void testGetByShortCodeCacheMissQueriesDbAndUpdatesCache() {
+    void testGetByCodeCacheMissQueriesDbAndUpdatesCache() {
         String shortCode = "xyz789";
         UrlMapping dbMapping = new UrlMapping();
         dbMapping.setShortCode(shortCode);
@@ -105,7 +104,7 @@ class UrlShortenerServiceTest {
         when(valueOperations.get("shortUrl:" + shortCode)).thenReturn(null);
         when(repository.findByShortCode(shortCode)).thenReturn(Optional.of(dbMapping));
 
-        Optional<UrlMapping> optionalMapping = service.getByShortCode(shortCode);
+        Optional<UrlMapping> optionalMapping = service.getByCode(shortCode);
 
         assertTrue(optionalMapping.isPresent());
         assertEquals(dbMapping, optionalMapping.get());
@@ -113,7 +112,7 @@ class UrlShortenerServiceTest {
     }
 
     @Test
-    void testIncrementClickCountUpdatesRepository() {
+    void testIncrementClicksUpdatesRepository() {
         String shortCode = "increment1";
         UrlMapping mapping = new UrlMapping();
         mapping.setShortCode(shortCode);
@@ -121,7 +120,7 @@ class UrlShortenerServiceTest {
 
         when(repository.findByShortCode(shortCode)).thenReturn(Optional.of(mapping));
 
-        service.incrementClickCount(shortCode);
+        service.incrementClicks(shortCode);
 
         assertEquals(1, mapping.getClickCount());
         verify(repository).save(mapping);

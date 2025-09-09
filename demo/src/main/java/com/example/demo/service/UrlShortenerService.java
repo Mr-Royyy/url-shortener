@@ -23,74 +23,83 @@ public class UrlShortenerService {
         this.redisTemplate = redisTemplate;
     }
 
-    // Create short link
-    public UrlMapping createShortLink(String originalUrl) {
+    public UrlMapping createLink(String originalUrl) {
         if (!isValidUrl(originalUrl)) {
-        throw new IllegalArgumentException("Invalid URL: " + originalUrl);
-    }
+            throw new IllegalArgumentException("Invalid URL: " + originalUrl);
+        }
         Optional<UrlMapping> existing = repository.findByOriginalUrl(originalUrl);
         if (existing.isPresent()) {
             return existing.get();
         }
         String code;
         do {
-            code = generateShortCode();
+            code = generateCode();
         } while (repository.findByShortCode(code).isPresent());
+        return createMapping(originalUrl, code);
+    }
+
+    public UrlMapping createLink(String originalUrl, String customCode) {
+        if (!isValidUrl(originalUrl)) {
+            throw new IllegalArgumentException("Invalid URL: " + originalUrl);
+        }
+        if (!isValidCode(customCode)) {
+            throw new IllegalArgumentException("Invalid custom code: " + customCode);
+        }
+        if (repository.findByShortCode(customCode).isPresent()) {
+            throw new IllegalArgumentException("Custom code already in use");
+        }
+        return createMapping(originalUrl, customCode);
+    }
+
+    private UrlMapping createMapping(String originalUrl, String code) {
         UrlMapping mapping = new UrlMapping();
         mapping.setOriginalUrl(originalUrl);
         mapping.setShortCode(code);
         repository.save(mapping);
-        // Cache the shortCode -> originalUrl mapping in Redis
         redisTemplate.opsForValue().set(REDIS_PREFIX + code, originalUrl);
         return mapping;
     }
 
-    // Lookup by short code with Redis cache
-    public Optional<UrlMapping> getByShortCode(String shortCode) {
-        // Check cache first
-        String cachedUrl = redisTemplate.opsForValue().get(REDIS_PREFIX + shortCode);
-        if (cachedUrl != null) {
-            // Create a UrlMapping object on the fly (clickCount and createdAt unknown here)
-            UrlMapping cachedMapping = new UrlMapping();
-            cachedMapping.setShortCode(shortCode);
-            cachedMapping.setOriginalUrl(cachedUrl);
-            return Optional.of(cachedMapping);
+    public Optional<UrlMapping> getByCode(String code) {
+        String cached = redisTemplate.opsForValue().get(REDIS_PREFIX + code);
+        if (cached != null) {
+            UrlMapping m = new UrlMapping();
+            m.setShortCode(code);
+            m.setOriginalUrl(cached);
+            return Optional.of(m);
         }
-        // Cache miss: lookup DB
-        Optional<UrlMapping> mappingOpt = repository.findByShortCode(shortCode);
-        mappingOpt.ifPresent(mapping -> {
-            // Update cache
-            redisTemplate.opsForValue().set(REDIS_PREFIX + shortCode, mapping.getOriginalUrl());
-        });
-        return mappingOpt;
+        Optional<UrlMapping> found = repository.findByShortCode(code);
+        found.ifPresent(f -> redisTemplate.opsForValue().set(REDIS_PREFIX + code, f.getOriginalUrl()));
+        return found;
     }
 
-    // Increment click count (DB update + optionally invalidate cache)
-    public void incrementClickCount(String shortCode) {
-        repository.findByShortCode(shortCode).ifPresent(link -> {
-            link.incrementClickCount();
-            repository.save(link);
-            // No need to update cache for originalUrl, so no cache action here
+    public void incrementClicks(String code) {
+        repository.findByShortCode(code).ifPresent(m -> {
+            m.incrementClickCount();
+            repository.save(m);
         });
     }
 
-    // Generate random 6-char code
-    private String generateShortCode() {
-        String chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        StringBuilder sb = new StringBuilder();
-        Random random = new Random();
+    private String generateCode() {
+        String allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random rnd = new Random();
+        StringBuilder sb = new StringBuilder(6);
         for (int i = 0; i < 6; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
+            sb.append(allowed.charAt(rnd.nextInt(allowed.length())));
         }
         return sb.toString();
     }
 
     public boolean isValidUrl(String url) {
-    try {
-        new URL(url);
-        return true;
-    } catch (MalformedURLException e) {
-        return false;
+        try {
+            new URL(url);
+            return true;
+        } catch (MalformedURLException e) {
+            return false;
+        }
     }
-}
+
+    private boolean isValidCode(String code) {
+        return code != null && code.matches("^[a-zA-Z0-9]{4,10}$");
+    }
 }

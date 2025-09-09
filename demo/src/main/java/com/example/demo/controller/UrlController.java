@@ -37,34 +37,44 @@ public class UrlController {
             return "index";
         }
 
-        try { new URI(originalUrl); }
-        catch (URISyntaxException e) {
+        try {
+            new URI(originalUrl);
+        } catch (URISyntaxException e) {
             model.addAttribute("errorMessage", "Invalid URL format");
             return "index";
         }
 
-        UrlMapping mapping = service.createShortLink(originalUrl);
-        model.addAttribute("shortLink", mapping);
+        try {
+            UrlMapping mapping = service.createLink(originalUrl);
+            model.addAttribute("shortLink", mapping);
+        } catch (IllegalArgumentException e) {
+            model.addAttribute("errorMessage", e.getMessage());
+        }
         return "index";
     }
 
     @GetMapping("/api/u/{shortCode}")
     public String redirectShortUrl(@PathVariable String shortCode) {
-        Optional<UrlMapping> link = service.getByShortCode(shortCode);
-        if (link.isEmpty()) return "redirect:/?errorMessage=Short URL not found";
+        Optional<UrlMapping> link = service.getByCode(shortCode);
+        if (link.isEmpty())
+            return "redirect:/?errorMessage=Short URL not found";
 
-        service.incrementClickCount(shortCode);
+        service.incrementClicks(shortCode);
         return "redirect:" + link.get().getOriginalUrl();
     }
 
     @GetMapping("/analytics")
-    public String analyticsPage() { return "analytics"; }
+    public String analyticsPage() {
+        return "analytics";
+    }
 
     @GetMapping("/analytics/check")
     public String checkAnalytics(@RequestParam("code") String shortCode, Model model) {
-        Optional<UrlMapping> link = service.getByShortCode(shortCode);
-        if (link.isEmpty()) model.addAttribute("errorMessage", "Short URL not found");
-        else model.addAttribute("shortLink", link.get());
+        Optional<UrlMapping> link = service.getByCode(shortCode);
+        if (link.isEmpty())
+            model.addAttribute("errorMessage", "Short URL not found");
+        else
+            model.addAttribute("shortLink", link.get());
         return "analytics";
     }
 

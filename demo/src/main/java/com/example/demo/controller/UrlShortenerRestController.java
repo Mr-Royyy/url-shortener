@@ -30,51 +30,61 @@ public class UrlShortenerRestController {
         this.service = service;
     }
 
-    // POST /api/shorten - create short URL
     @PostMapping("/shorten")
     public ResponseEntity<?> shortenUrl(@RequestBody ShortenRequest request) {
-        String originalUrl = request.getUrl();
-        if (originalUrl == null || originalUrl.isBlank()) {
+        String url = request.getUrl();
+        String code = request.getCustomCode();
+
+        if (url == null || url.isBlank()) {
             return ResponseEntity.badRequest().body("URL cannot be empty");
         }
+
         try {
-            new URI(originalUrl);
+            new URI(url);
         } catch (URISyntaxException e) {
             return ResponseEntity.badRequest().body("Invalid URL format");
         }
 
-        UrlMapping mapping = service.createShortLink(originalUrl);
-        String shortUrl = String.format("http://localhost:8081/api/u/%s", mapping.getShortCode());
-        return ResponseEntity.ok(new ShortenResponse(shortUrl));
+        try {
+            UrlMapping mapping;
+            if (code != null && !code.isBlank()) {
+                mapping = service.createLink(url, code);
+            } else {
+                mapping = service.createLink(url);
+            }
+            String shortUrl = String.format("http://localhost:8081/api/u/%s", mapping.getShortCode());
+            return ResponseEntity.ok(new ShortenResponse(shortUrl));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
-    // GET /api/u/{shortCode} - redirect to original URL
-    @GetMapping("/u/{shortCode}")
-    public ResponseEntity<?> redirect(@PathVariable String shortCode) {
-        Optional<UrlMapping> optionalMapping = service.getByShortCode(shortCode);
-        if (optionalMapping.isEmpty()) {
+    @GetMapping("/u/{code}")
+    public ResponseEntity<?> redirect(@PathVariable String code) {
+        Optional<UrlMapping> mapping = service.getByCode(code);
+        if (mapping.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Short URL not found");
         }
-        service.incrementClickCount(shortCode);
-        String originalUrl = optionalMapping.get().getOriginalUrl();
+
+        service.incrementClicks(code);
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(URI.create(originalUrl));
+        headers.setLocation(URI.create(mapping.get().getOriginalUrl()));
+
         return new ResponseEntity<>(headers, HttpStatus.FOUND);
     }
 
-    // GET /api/analytics/{shortCode} - analytics info for a short URL
-    @GetMapping("/analytics/{shortCode}")
-    public ResponseEntity<?> getAnalytics(@PathVariable String shortCode) {
-        Optional<UrlMapping> optionalMapping = service.getByShortCode(shortCode);
-        if (optionalMapping.isEmpty()) {
+    @GetMapping("/analytics/{code}")
+    public ResponseEntity<?> analytics(@PathVariable String code) {
+        Optional<UrlMapping> mapping = service.getByCode(code);
+        if (mapping.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Short URL not found");
         }
-        UrlMapping mapping = optionalMapping.get();
+        UrlMapping m = mapping.get();
         AnalyticsResponse response = new AnalyticsResponse(
-                mapping.getOriginalUrl(),
-                mapping.getShortCode(),
-                mapping.getClickCount(),
-                mapping.getCreatedAt()
+                m.getOriginalUrl(),
+                m.getShortCode(),
+                m.getClickCount(),
+                m.getCreatedAt()
         );
         return ResponseEntity.ok(response);
     }
