@@ -1,50 +1,58 @@
 package com.example.demo.config;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.stereotype.Component;
 
-import jakarta.servlet.Filter;
+import com.example.demo.exception.TooManyRequestsException;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class RateLimitingFilter implements Filter {
+public class RateLimitingFilter extends HttpFilter {
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 20;
-    private final ConcurrentHashMap<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
-    private volatile long lastResetTime = System.currentTimeMillis();
+    private static final long LIMIT_WINDOW_MILLIS = 60 * 1000; // 1 minute
+    private static final int MAX_REQUESTS_PER_WINDOW = 30; // Limit per IP
+
+    private final Map<String, ClientRequestInfo> requestCounts = new ConcurrentHashMap<>();
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) 
+    protected void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        long now = System.currentTimeMillis();
+        String clientIp = request.getRemoteAddr();
+        long currentTime = Instant.now().toEpochMilli();
 
-        if (now - lastResetTime > 60_000) {
-            requestCounts.clear();
-            lastResetTime = now;
-        }
+        ClientRequestInfo info = requestCounts.compute(clientIp, (ip, existing) -> {
+            if (existing == null || currentTime - existing.windowStart >= LIMIT_WINDOW_MILLIS) {
+                return new ClientRequestInfo(1, currentTime);
+            } else {
+                existing.requestCount++;
+                return existing;
+            }
+        });
 
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        String ip = httpRequest.getRemoteAddr();
-
-        requestCounts.putIfAbsent(ip, new AtomicInteger(0));
-        int currentCount = requestCounts.get(ip).incrementAndGet();
-
-        if (currentCount > MAX_REQUESTS_PER_MINUTE) {
-            HttpServletResponse httpResponse = (HttpServletResponse) response;
-            httpResponse.setStatus(429);
-            httpResponse.getWriter().write("Too many requests - please try again later");
-            return;
+        if (info.requestCount > MAX_REQUESTS_PER_WINDOW) {
+            throw new TooManyRequestsException("Rate limit exceeded. Try again later.");
         }
 
         chain.doFilter(request, response);
+    }
+
+    private static class ClientRequestInfo {
+        int requestCount;
+        long windowStart;
+
+        ClientRequestInfo(int requestCount, long windowStart) {
+            this.requestCount = requestCount;
+            this.windowStart = windowStart;
+        }
     }
 }

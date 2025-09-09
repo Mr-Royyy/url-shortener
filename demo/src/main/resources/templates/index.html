@@ -25,8 +25,8 @@
             <input type="datetime-local" id="expiry" name="expiry" class="form-control" />
         </div>
 
-        <!-- Honeypot field to trap bots; real users won't fill this -->
-        <input type="text" name="honeypot" style="display:none" autocomplete="off" tabindex="-1"/>
+        <!-- Honeypot field to trap bots; real users won't fill this -->
+        <input type="text" name="honeypot" style="display:none" autocomplete="off" tabindex="-1"/>
 
         <button type="submit" class="btn btn-primary w-100">Shorten URL</button>
     </form>
@@ -41,6 +41,7 @@
             <small>Expires on: <span th:text="${#temporals.format(shortLink.expiryDate, 'yyyy-MM-dd HH:mm')}"></span></small>
         </div>
     </div>
+<div th:if="${errorMessage != null}" class="alert alert-danger mt-3" th:text="${errorMessage}"></div>
 
     <div th:if="${errorMessage != null}" class="alert alert-danger mt-3" th:text="${errorMessage}"></div>
 </div>

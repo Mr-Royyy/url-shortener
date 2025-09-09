@@ -16,7 +16,7 @@ public class ExpiredUrlCleanupTask {
 
     private final UrlMappingRepository repository;
     private final RedisTemplate<String, String> redisTemplate;
-    private static final String REDIS_PREFIX = "url:";
+    private static final String REDIS_PREFIX = "shortUrl:";
 
     public ExpiredUrlCleanupTask(UrlMappingRepository repository, RedisTemplate<String, String> redisTemplate) {
         this.repository = repository;

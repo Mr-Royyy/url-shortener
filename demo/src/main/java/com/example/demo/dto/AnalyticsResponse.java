@@ -3,6 +3,7 @@ package com.example.demo.dto;
 import java.time.LocalDateTime;
 
 public class AnalyticsResponse {
+
     private String originalUrl;
     private String shortCode;
     private int clickCount;
