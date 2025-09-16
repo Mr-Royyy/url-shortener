@@ -16,7 +16,7 @@ A modern URL shortener application built with Java and Spring Boot that enables 
 - Robust input validation both client- and server-side
 - Containerized deployment support with Docker
 
-## Tech Stack
+
 
 - Java 24
 - Spring Boot 3.5.5 (Web, Data JPA, Data Redis, Scheduling)
@@ -26,4 +26,6 @@ A modern URL shortener application built with Java and Spring Boot that enables 
 - Maven for build and dependencies
 - JUnit & Mockito for testing
 - SLF4J / Logback for logging
-- Docker for containerization
+
+## Under Implementation
+- Docker for containerization 
